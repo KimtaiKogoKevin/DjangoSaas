@@ -1,0 +1,7 @@
+<div>
+    {% if request.user.is_authenticated %}
+    You are a Verified user
+    {% else %}
+    You are not verifed , i dont trust you!
+    {% endif %}
+</div>
