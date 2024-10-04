@@ -25,11 +25,12 @@ def about_view(request, *args, **kwargs):
         "page_title": my_title,
         "page_visit_count" : page_qs.count(),
         "percent":percent,
-        "total_visits_count":qs.count()}
+        "total_visits_count":qs.count()
+        }
     html_template="home.html"
     PageVisit.objects.create(path=request.path)
-    path= request.path
-    print("path",path)
+    # path= request.path
+    # print("path",path)
     return render(request, html_template,my_context)
 
 def old_home_page_view(request, *args, **kwargs):
