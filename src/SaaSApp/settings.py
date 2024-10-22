@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
 if DEBUG:
     ALLOWED_HOSTS += [
         "127.0.0.1",
-        "localhosts"
+        "localhost"
     ]
 
 
@@ -90,6 +90,17 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+CONN_MAX_AGE= config("CONN_MAX_AGE",cast=int,default=30)
+DATABASE_URL = config("DATABASE_URL",cast=str)
+
+if DATABASE_URL is not None:
+    import dj_database_url
+    DATABASES = {
+    'default': dj_database_url.config(default=DATABASE_URL,
+                                      conn_health_checks=True,
+                                      conn_max_age=CONN_MAX_AGE)
 }
 
 
