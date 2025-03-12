@@ -41,7 +41,7 @@ def create_product(
     return stripe_id
 
 def create_price(
-        currency="9999",
+        currency="usd",
         unit_amount="9999",
         interval = "month",
         product=None,

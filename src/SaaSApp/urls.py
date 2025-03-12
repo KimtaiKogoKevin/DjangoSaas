@@ -17,14 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path , include
 from auth import views as auth_views
+from subscriptions import views as subscription_views
+
 from .views import home_view,about_view,pw_protected_view
 
 urlpatterns = [
     path("",home_view, name="home"),
     path('admin/', admin.site.urls),
     path('about/', about_view),
-    path('login/', auth_views.login_view),
-    path('register/', auth_views.register_view),
+    path('pricing/', subscription_views.subscription_price_view, name="pricing"),
+
+    # path('login/', auth_views.login_view),
+    # path('register/', auth_views.register_view),
     path('accounts/', include('allauth.urls')),
     path('profiles/', include('profiles.urls')),
 

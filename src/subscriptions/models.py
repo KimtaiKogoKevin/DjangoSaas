@@ -31,13 +31,19 @@ class Subscription(models.Model):
         "subscriptions",
         "codename__in":[x[0]for x in  SUBSCRIPTION_PERMISSIONS]})
     stripe_id = models.CharField(max_length=120,null=True,blank=True)
-
+    order = models.IntegerField(default=-1, help_text="Ordering on Django Price page")
+    featured=models.BooleanField(default=True,help_text="Featured on the Django Pricing Page")
+    updated=models.DateTimeField(auto_now=True)
+    timestamp=models.DateTimeField(auto_now_add=True)
+         
 
     def __str__(self):
         return f"{self.name}"
 
     class Meta:
         permissions = SUBSCRIPTION_PERMISSIONS
+        ordering =['order','featured','-updated']
+
 
     def save(self,*args,**kwargs):
          
@@ -52,6 +58,7 @@ class Subscription(models.Model):
             )
             self.stripe_id=stripe_id
         super().save(*args,**kwargs)
+        
 
 
 class SubscriptionPrice(models.Model):
@@ -68,13 +75,19 @@ class SubscriptionPrice(models.Model):
                                     choices=IntervalChoices.choices
                                     )
         price = models.DecimalField(max_digits=10, decimal_places=2 , default= 99.99)
-        
-
+        order = models.IntegerField(default=-1, help_text="Ordering on Django Price page")
+        featured=models.BooleanField(default=True,help_text="Featured on the Django Pricing Page")
+        updated=models.DateTimeField(auto_now=True)
+        timestamp=models.DateTimeField(auto_now_add=True)
+         
+        class Meta:
+            ordering =['subscription__order','order','featured','-updated']
         @property 
         def stripe_price(self):
             """
-            remove decimal places"""
-            return self.price * 100
+            remove decimal places
+            """
+            return int(self.price * 100)
 
         @property
         def stripe_currency(self):
@@ -101,28 +114,17 @@ class SubscriptionPrice(models.Model):
                 self.stripe_id= stripe_id
 
 
-            super.save(self, *args,**kwargs)
+            super().save( *args,**kwargs)
+            if self.featured and self.subscription:
+                qs = SubscriptionPrice.objects.filter(
+                    subscription=self.subscription,
+                    interval=self.interval
+                ).exclude(id=self.id)
+
+                qs.update(featured=False)
 
 
-        def __str__(self):
-            return f"{self.name}"
-
-        class Meta:
-            permissions = SUBSCRIPTION_PERMISSIONS
-
-        def save(self,*args,**kwargs):
-            
-            if not self.stripe_id:
-                
-                stripe_id= helpers.billing.create_product(
-                    name=self.name,
-                    metadata={
-                        "subscription_plan_id":self.id,
-                        },
-                    raw=False
-                )
-                self.stripe_id=stripe_id
-            super().save(*args,**kwargs)
+       
 
 
 
