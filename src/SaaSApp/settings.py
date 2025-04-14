@@ -46,15 +46,19 @@ SECRET_KEY = config("DJANGO_SECRET_KEY")
 # DEBUG = str(os.environ.get("DJANGO_DEBUG")).lower()== "true"
 DEBUG = config("DJANGO_DEBUG",cast=bool)
 # print("DEBUG" , DEBUG , type(DEBUG))
+BASE_URL =config("BASE_URL", default=None)
 
 ALLOWED_HOSTS = [
     ".railway.app" #https://saas.prod.railway.app 
 ]
 
+
 if DEBUG:
     ALLOWED_HOSTS += [
         "127.0.0.1",
-        "localhost"
+        "localhost",
+        "https://djangosaas-production-93de.up.railway.app/"
+
     ]
 
 
@@ -92,7 +96,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-     "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
