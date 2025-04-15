@@ -2,6 +2,8 @@
 # See your keys here: https://dashboard.stripe.com/apikeys
 import stripe
 from decouple import config
+
+import helpers
 DJANGO_DEBUG=config('DJANGO_DEBUG',default=False,cast=bool)
 STRIPE_SECRET_KEY= config("STRIPE_SECRET_KEY",default="",cast=str)
 
@@ -97,3 +99,11 @@ def get_subscription(stripe_id, raw=True):
 #     if raw:
 #         return response
 #     return response.url
+
+def get_checkout_customer_plan(session_id):
+    checkout_response = get_checkout_session(session_id,raw=True)
+    customer_id = checkout_response.customer
+    sub_stripe_id =checkout_response.subscription
+    subscription_response= get_subscription(sub_stripe_id,raw=True)
+    subscription_plan=subscription_response.plan
+    return customer_id , subscription_plan.id
