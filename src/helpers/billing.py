@@ -2,6 +2,7 @@
 # See your keys here: https://dashboard.stripe.com/apikeys
 import stripe
 from decouple import config
+from .import date_utils
 
 import helpers
 DJANGO_DEBUG=config('DJANGO_DEBUG',default=False,cast=bool)
@@ -94,6 +95,17 @@ def get_subscription(stripe_id, raw=True):
     if raw:
         return response
     return response.url
+def cancel_subscription(stripe_id, reason="",feedback="other",raw=True):
+    response = stripe.Subscription.cancel(
+        stripe_id,
+        cancellation_details={
+            "comment":reason,
+            "feedback":feedback
+        }
+        )
+    if raw:
+        return response
+    return response.url
 # def get_customer(customer_id, raw=True):
 #     response = stripe.Customer.retrieve(customer_id)
 #     if raw:
@@ -105,5 +117,16 @@ def get_checkout_customer_plan(session_id):
     customer_id = checkout_response.customer
     sub_stripe_id =checkout_response.subscription
     subscription_response= get_subscription(sub_stripe_id,raw=True)
+    #current_period_start
+    # #current_period_end
     subscription_plan=subscription_response.plan
-    return customer_id , subscription_plan.id
+    current_period_start = date_utils.timestamp_As_date_time(subscription_response.current_period_start)
+    current_period_end = date_utils.timestamp_As_date_time(subscription_response.current_period_end)
+    data={
+        "customer_id":customer_id,
+        "subscription_plan":subscription_plan.id,
+        "subscription_stripe_id":sub_stripe_id,
+        "current_period_start":current_period_start,
+        "current_period_end":current_period_end,
+    }
+    return data

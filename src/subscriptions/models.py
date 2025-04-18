@@ -150,15 +150,31 @@ class SubscriptionPrice(models.Model):
 
                 qs.update(featured=False)
 
-
-       
-
-
-
 class UserSubscription(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     Subscription = models.ForeignKey(Subscription,on_delete=models.SET_NULL,null=True,blank=True)
+    stripe_id = models.CharField(max_length=120,null=True,blank=True)
     active = models.BooleanField(default=True)
+    user_cancelled = models.BooleanField(default=False)
+    original_period_start= models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
+    current_period_start = models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
+    current_period_end = models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
+    
+    @property
+    def billing_cycle_anchor(self):
+            """
+            https://docs.stripe.com/payments/checkout/billing-cycle 
+            Optional delay to start new subscription in stripe checkout 
+            """
+            if not self.current_period_end:
+                return None
+            return int(self.current_period_end.timestamp())
+
+    def save(self,*args,**kwargs):
+        if (self.original_period_start is None and self.current_period_start is not None):
+            self.original_period_start = self.current_period_start
+        super().save(*args,**kwargs)
+
 
     def __str__(self):
         return f"{self.user}'s  {self.Subscription} " + " Subscription"

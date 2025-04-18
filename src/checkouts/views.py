@@ -44,9 +44,13 @@ def checkout_redirect_view(request):
 
 def checkout_finalize_redirect_view(request):
     session_id= request.GET.get("session_id")
-    customer_id, plan_id = helpers.billing.get_checkout_customer_plan(session_id)
-    # price_qs=SubscriptionPrice.objects.filter(stripe_id=plan_id)
-    # print(price_qs)
+    checkout_data= helpers.billing.get_checkout_customer_plan(session_id)
+   
+    plan_id = checkout_data.get("subscription_plan")
+    customer_id = checkout_data.get("customer_id")
+    sub_stripe_id = checkout_data.get("subscription_stripe_id")
+    current_period_start = checkout_data.get("current_period_start")
+    current_period_end = checkout_data.get("current_period_end")
     try:
         sub_obj = Subscription.objects.get(subscriptionprice__stripe_id=plan_id) #reverse lookup
     except:
@@ -57,22 +61,44 @@ def checkout_finalize_redirect_view(request):
     except:
         user_obj = None
     _user_sub_exists = False
+    updated_sub_options ={
+        "Subscription":sub_obj,
+        "stripe_id":sub_stripe_id,
+        "user_cancelled":False,
+        "current_period_start":current_period_start,
+        "current_period_end":current_period_end,
+    }
     try:
        _user_sub_obj=UserSubscription.objects.get(user=user_obj)
        _user_sub_exists = True
+
     except UserSubscription.DoesNotExist:
-        UserSubscription.objects.create(user=user_obj,Subscription=sub_obj)
+       _user_sub_obj= UserSubscription.objects.create(
+           user=user_obj,
+           **updated_sub_options
+           )
     except:
         _user_sub_obj = None
     if None in [sub_obj,user_obj,_user_sub_obj]:
         return HttpResponse("Oops Error with your account , please contact us")
     if _user_sub_exists:
         #cancel_old_subscription
-
-        #assign new sunscription
-        _user_sub_obj.Subscription = sub_obj
+        old_stripe_id = _user_sub_obj.stripe_id
+        same_stripe_id = sub_stripe_id == old_stripe_id
+        if old_stripe_id is not None and not same_stripe_id:
+             #cancel old subscription
+            try:
+                helpers.billing.cancel_subscription(old_stripe_id,reason="Automatically cancelled old subscription",feedback="other")
+            except:
+                pass
+         #assign new subscription
+        for k, v in updated_sub_options.items():
+            setattr(_user_sub_obj, k, v)
+        # _user_sub_obj.Subscription = sub_obj
+        # _user_sub_obj.stripe_id = sub_stripe_id
+        # _user_sub_obj.user_cancelled = False
         _user_sub_obj.save()
-  
+   
     context ={
         
     }
