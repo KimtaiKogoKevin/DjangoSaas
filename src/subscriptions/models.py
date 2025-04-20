@@ -150,16 +150,59 @@ class SubscriptionPrice(models.Model):
 
                 qs.update(featured=False)
 
+class SubscriptionStatus(models.TextChoices):
+        ACTIVE = 'active','Active'
+        FREETRIAL = 'free_trial','Free Trial'
+        INCOMPLETE = 'incomplete','Incomplete'
+        INCOMPLETE_EXPIRED = 'incomplete_expired','Incomplete Expired'
+        PAST_DUE = 'past_due','Past Due'
+        CANCELLED= 'canceled','Cancelled'
+        UNPAID = 'unpaid','Unpaid'  
+        PAUSED  = 'paused','Paused'
+
 class UserSubscription(models.Model):
+    
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     Subscription = models.ForeignKey(Subscription,on_delete=models.SET_NULL,null=True,blank=True)
     stripe_id = models.CharField(max_length=120,null=True,blank=True)
     active = models.BooleanField(default=True)
     user_cancelled = models.BooleanField(default=False)
     original_period_start= models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
+    cancel_at_period_end=models.BooleanField(default=True)
     current_period_start = models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
     current_period_end = models.DateTimeField(null=True,blank=True,auto_now=False,auto_now_add=False)
+    status = models.CharField(max_length=120,choices=SubscriptionStatus.choices,null=True,blank=True)
+
+
+
+    def get_absolute_url(self):
+        return reverse("user_subscription")
+    def get_cancel_url(self):
+        return reverse("user_subscription_cancel")
     
+    @property
+    def is_active_status(self):
+        return self.status in [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.FREETRIAL,
+            # SubscriptionStatus.PAST_DUE,
+        ]
+    
+    @property
+    def plan_name(self):
+        if not self.Subscription:
+            return None 
+        return self.Subscription.name
+    def serialize(self):
+        return {
+            # "stripe_id":self.stripe_id,
+            # "active":self.active,
+            # "user_cancelled":self.user_cancelled,
+            'plan_name':self.plan_name,
+            "current_period_start":self.current_period_start,
+            "current_period_end":self.current_period_end,
+            "status":self.status,
+        }
     @property
     def billing_cycle_anchor(self):
             """

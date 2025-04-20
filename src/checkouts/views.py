@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.contrib import messages
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
@@ -44,13 +45,13 @@ def checkout_redirect_view(request):
 
 def checkout_finalize_redirect_view(request):
     session_id= request.GET.get("session_id")
-    checkout_data= helpers.billing.get_checkout_customer_plan(session_id)
-   
-    plan_id = checkout_data.get("subscription_plan")
-    customer_id = checkout_data.get("customer_id")
-    sub_stripe_id = checkout_data.get("subscription_stripe_id")
-    current_period_start = checkout_data.get("current_period_start")
-    current_period_end = checkout_data.get("current_period_end")
+    checkout_data= helpers.billing.get_checkout_customer_plan(session_id) 
+    plan_id = checkout_data.pop('subscription_plan')
+    customer_id = checkout_data.pop('customer_id')
+    sub_stripe_id = checkout_data.pop("subscription_stripe_id")
+
+    subscription_data={**checkout_data}
+    
     try:
         sub_obj = Subscription.objects.get(subscriptionprice__stripe_id=plan_id) #reverse lookup
     except:
@@ -65,8 +66,7 @@ def checkout_finalize_redirect_view(request):
         "Subscription":sub_obj,
         "stripe_id":sub_stripe_id,
         "user_cancelled":False,
-        "current_period_start":current_period_start,
-        "current_period_end":current_period_end,
+        **subscription_data,
     }
     try:
        _user_sub_obj=UserSubscription.objects.get(user=user_obj)
@@ -98,6 +98,9 @@ def checkout_finalize_redirect_view(request):
         # _user_sub_obj.stripe_id = sub_stripe_id
         # _user_sub_obj.user_cancelled = False
         _user_sub_obj.save()
+        messages.success(request,"Success, Thank You for purchasing the subscription.")
+        return redirect(_user_sub_obj.get_absolute_url())
+
    
     context ={
         
